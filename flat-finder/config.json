@@ -1,0 +1,11 @@
+{
+  "min_price": 1700,
+  "max_price": 2100,
+  "min_beds": 1,
+  "max_beds": 2,
+  "rightmove_location": "REGION^93965",
+  "onthemarket_area": "islington",
+  "openrent_area": "islington",
+  "openrent_max_km": 3.0,
+  "detail_delay_seconds": 0.8
+}

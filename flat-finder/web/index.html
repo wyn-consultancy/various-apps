@@ -1,0 +1,363 @@
+<title>Islington Flat Feed</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: sticky filter bar over a responsive card grid; a hand-add form and source status sit below the feed */
+:root{
+  --bg:#f3f5f2; --surface:#ffffff; --sunk:#e8ece7; --fg:#18201d; --muted:#5b6661; --line:#d5dbd5;
+  --accent:#1f6b52; --accent-fg:#ffffff; --accent-soft:#dcebe3;
+  --good:#1f7a4a; --good-soft:#dcefe2; --mid:#8a5a00; --mid-soft:#f6e9cf; --bad:#a3352b; --bad-soft:#f5dfdc;
+  --display:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body:"Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111513; --surface:#191f1c; --sunk:#222a26; --fg:#e6ebe8; --muted:#97a39d; --line:#2c3531;
+  --accent:#6cc4a1; --accent-fg:#0d1a14; --accent-soft:#1c3128;
+  --good:#7fd3a2; --good-soft:#1a3324; --mid:#e7b55c; --mid-soft:#3a2d14; --bad:#ef8f84; --bad-soft:#3d201d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111513; --surface:#191f1c; --sunk:#222a26; --fg:#e6ebe8; --muted:#97a39d; --line:#2c3531;
+  --accent:#6cc4a1; --accent-fg:#0d1a14; --accent-soft:#1c3128;
+  --good:#7fd3a2; --good-soft:#1a3324; --mid:#e7b55c; --mid-soft:#3a2d14; --bad:#ef8f84; --bad-soft:#3d201d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.1}
+h1{font-size:clamp(26px,5vw,36px);font-weight:800;letter-spacing:-.02em}
+h2{font-size:20px;font-weight:600}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header.top{padding-block:28px 14px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);font-size:14px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-block:1px solid var(--line)}
+.bar .wrap{padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.field{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+select,input[type=number],input[type=url],input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+input[type=range]{accent-color:var(--accent);width:120px}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:3px;border-radius:8px}
+.tabs button{font:inherit;font-size:13px;font-weight:500;border:0;background:transparent;color:var(--muted);padding:5px 10px;border-radius:6px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font:inherit;font-size:12px;font-family:var(--mono);border:1px solid var(--line);background:transparent;color:var(--muted);padding:3px 8px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{margin-left:auto;font-size:13px;color:var(--muted)}
+main{padding-block:18px 40px;display:grid;gap:36px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.card.hidden-item{opacity:.55}
+.photo{position:relative;aspect-ratio:3/2;max-width:100%;background:var(--sunk);display:grid;place-items:center;color:var(--muted);font-size:13px}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .new{position:absolute;top:8px;left:8px;background:var(--accent);color:var(--accent-fg);font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;letter-spacing:.04em}
+.photo .score{position:absolute;top:8px;right:8px;background:var(--surface);color:var(--fg);font-family:var(--mono);font-size:12px;padding:2px 7px;border-radius:4px}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price b{font-family:var(--display);font-size:22px;font-weight:800}
+.price span{color:var(--muted);font-size:13px}
+.addr{font-weight:600;overflow-wrap:anywhere}
+.addr small{font-family:var(--mono);font-weight:500;color:var(--muted);margin-left:6px;font-size:12px}
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{font-size:12px;font-weight:500;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.mid{background:var(--mid-soft);color:var(--mid)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+details{font-size:13px;color:var(--muted)}
+summary{cursor:pointer;color:var(--fg);font-weight:500}
+details dl{margin:8px 0 0;display:grid;gap:6px}
+details dt{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+details dd{margin:0;overflow-wrap:anywhere}
+.sources{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.sources a{color:var(--accent);font-weight:600;text-decoration:none}
+.sources a:hover{text-decoration:underline}
+.agent{color:var(--muted);font-size:12px}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:4px}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--fg);padding:6px 10px;border-radius:7px;cursor:pointer}
+.btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.empty{padding:40px 16px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px}
+.panel p{margin:0;color:var(--muted);max-width:70ch}
+form.add{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+form.add label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+form.add .wide{grid-column:1/-1}
+.status{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.status b{color:var(--fg)}
+.msg{font-size:13px;color:var(--muted)}
+@media (max-width:640px){.count{margin-left:0;width:100%}}
+@media (prefers-reduced-motion:no-preference){.card{transition:opacity .2s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Islington flat feed</h1>
+      <div class="sub" id="sub">Loading listings…</div>
+    </div>
+    <div class="sub" id="criteria"></div>
+  </header>
+</div>
+
+<div class="bar"><div class="wrap">
+  <div class="tabs" role="group" aria-label="View">
+    <button type="button" id="v-all" aria-pressed="true" data-view="all">Feed</button>
+    <button type="button" id="v-short" aria-pressed="false" data-view="short">Shortlist</button>
+    <button type="button" id="v-hidden" aria-pressed="false" data-view="hidden">Hidden</button>
+  </div>
+  <label class="field" for="f-parking">Parking
+    <select id="f-parking">
+      <option value="notnone">Hide "no parking"</option>
+      <option value="some">Some parking</option>
+      <option value="offstreet">Off-street only</option>
+      <option value="any">Show all</option>
+    </select></label>
+  <label class="field" for="f-beds">Beds
+    <select id="f-beds"><option value="0">Any</option><option value="1">1</option><option value="2">2</option></select></label>
+  <label class="field" for="f-max">Up to <span class="mono" id="f-max-out">£2,100</span>
+    <input type="range" id="f-max" min="1700" max="2100" step="25" value="2100"></label>
+  <label class="field" for="f-sort">Sort
+    <select id="f-sort"><option value="score">Best match</option><option value="price">Cheapest</option><option value="new">Newest</option></select></label>
+  <label class="field" for="f-new"><input type="checkbox" id="f-new"> New only</label>
+  <div class="chips" id="areas" role="group" aria-label="Postcode areas"></div>
+  <span class="count" id="count"></span>
+</div></div>
+
+<div class="wrap">
+<main>
+  <section class="grid" id="grid" aria-live="polite"></section>
+
+  <section class="panel" id="add-panel">
+    <h2>Add a listing by hand</h2>
+    <p>For Facebook Marketplace, Gumtree, SpareRoom or a card in a shop window. It joins the feed and can be shortlisted like the rest.</p>
+    <form class="add" id="add-form">
+      <label class="wide" for="a-url">Link<input type="url" id="a-url" placeholder="https://www.facebook.com/marketplace/item/…" required></label>
+      <label for="a-price">Rent £ pcm<input type="number" id="a-price" min="0" step="25" required></label>
+      <label for="a-beds">Beds<select id="a-beds"><option>1</option><option>2</option><option>3</option></select></label>
+      <label for="a-addr">Street or area<input type="text" id="a-addr" placeholder="e.g. Liverpool Road, N1"></label>
+      <label for="a-parking">Parking<select id="a-parking">
+        <option value="unknown">Not stated</option><option value="offstreet">Off-street</option>
+        <option value="permit">On-street permit</option><option value="none">None</option></select></label>
+      <label class="wide" for="a-note">Note<input type="text" id="a-note" placeholder="Laminate floors, double glazed, landlord replies fast…"></label>
+      <div class="wide" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn primary" type="submit">Add to feed</button>
+        <span class="msg" id="add-msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Sources</h2>
+    <div class="status" id="status"></div>
+    <p>Zoopla blocks automated access, so it isn't searched. Most agents post the same flats on Rightmove. Facebook Marketplace needs a login, so add finds from there with the form above. Ask Claude to "refresh the flat feed" to pull new listings.</p>
+    <p class="msg" id="store-msg"></p>
+  </section>
+</main>
+</div>
+
+<script>
+(function(){
+  var state = {data:null, marks:{}, manual:[], view:"all", areas:new Set(), db:null};
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); };
+  var gbp = function(n){ return "£" + Number(n).toLocaleString("en-GB"); };
+  var PARK = {
+    offstreet:{label:"Off-street parking", cls:"good"},
+    mentioned:{label:"Parking mentioned", cls:"mid"},
+    permit:{label:"On-street permit", cls:"mid"},
+    unknown:{label:"Parking not stated", cls:""},
+    none:{label:"No parking", cls:"bad"}
+  };
+
+  // ---- local fallback when the shared store is unavailable ----
+  function lsGet(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+  function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+  function setMark(key, status){
+    var cur = state.marks[key];
+    var next = cur === status ? null : status;
+    if(next) state.marks[key] = next; else delete state.marks[key];
+    render();
+    if(state.db){
+      var ref = state.db.doc("marks/" + key);
+      (next ? ref.set({status:next, at:new Date().toISOString()}) : ref.delete()).catch(function(){
+        $("store-msg").textContent = "Couldn't save that change. Check your connection and try again.";
+      });
+    } else lsSet("ff-marks", state.marks);
+  }
+
+  function allListings(){
+    var base = state.data ? state.data.listings : [];
+    var manual = state.manual.map(function(m){
+      var host = ""; try{ host = new URL(m.url).hostname.replace(/^www\./, ""); }catch(e){}
+      var src = /facebook/.test(host) ? "Facebook" : (host || "Added by hand");
+      var pc = (m.address || "").toUpperCase().match(/\b(EC\d+[A-Z]?|WC\d+[A-Z]?|NW\d+|N\d+|E\d+)\b/);
+      return {key:"m-" + m.id, source:src, url:m.url, title:m.beds + " bed", address:m.address || "Address not given",
+        price:Number(m.price), beds:Number(m.beds), parking:m.parking || "unknown", glazing:false, floors:false,
+        evidence:{}, blurb:m.note || "", agent:"Added by hand", also:[], district:pc ? pc[1] : "",
+        first_seen:m.at, score:({offstreet:40,mentioned:25,permit:10,unknown:0,none:-30}[m.parking]||0) + 5, manual:true};
+    });
+    return manual.concat(base);
+  }
+
+  function isNew(l){
+    if(!state.data || !l.first_seen) return false;
+    var updated = Date.parse(state.data.updated), seen = Date.parse(l.first_seen);
+    return seen > state.firstRun && updated - seen < 3 * 864e5;
+  }
+
+  function visible(){
+    var p = $("f-parking").value, beds = +$("f-beds").value, max = +$("f-max").value, onlyNew = $("f-new").checked;
+    var list = allListings().filter(function(l){
+      var mark = state.marks[l.key];
+      if(state.view === "short" && mark !== "shortlist") return false;
+      if(state.view === "hidden" && mark !== "hidden") return false;
+      if(state.view === "all" && mark === "hidden") return false;
+      if(p === "notnone" && l.parking === "none") return false;
+      if(p === "some" && ["offstreet","mentioned","permit"].indexOf(l.parking) < 0) return false;
+      if(p === "offstreet" && l.parking !== "offstreet") return false;
+      if(beds && l.beds !== beds) return false;
+      if(l.price > max) return false;
+      if(onlyNew && !isNew(l)) return false;
+      if(state.areas.size && !state.areas.has(l.district || "Other")) return false;
+      return true;
+    });
+    var s = $("f-sort").value;
+    list.sort(function(a, b){
+      if(s === "price") return a.price - b.price;
+      if(s === "new") return (Date.parse(b.first_seen || b.added) || 0) - (Date.parse(a.first_seen || a.added) || 0);
+      return b.score - a.score || a.price - b.price;
+    });
+    return list;
+  }
+
+  function card(l){
+    var mark = state.marks[l.key], pk = PARK[l.parking] || PARK.unknown;
+    var ev = l.evidence || {};
+    var srcs = '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.source) + ' ↗</a>' +
+      (l.also || []).map(function(a){ return '<a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.source) + ' ↗</a>'; }).join("");
+    var evid = ["parking","glazing","floors"].filter(function(k){ return ev[k]; }).map(function(k){
+      return "<dt>" + ({parking:"Parking",glazing:"Glazing",floors:"Floors"}[k]) + "</dt><dd>“" + esc(ev[k]) + "”</dd>";
+    }).join("");
+    return '<article class="card' + (mark === "hidden" ? " hidden-item" : "") + '">' +
+      '<div class="photo">' + (l.thumb ? '<img src="' + esc(l.thumb) + '" alt="" loading="lazy">' : "No photo") +
+        (isNew(l) ? '<span class="new">NEW</span>' : "") +
+        '<span class="score" title="Match score">' + l.score + '</span></div>' +
+      '<div class="body">' +
+        '<div class="price"><b class="mono">' + gbp(l.price) + '</b><span>pcm · ' + l.beds + ' bed</span></div>' +
+        '<div class="addr">' + esc(l.address) + (l.district ? '<small>' + esc(l.district) + '</small>' : "") + '</div>' +
+        '<div class="pills"><span class="pill ' + pk.cls + '">' + pk.label + '</span>' +
+          '<span class="pill ' + (l.glazing ? "good" : "") + '">' + (l.glazing ? "Double glazed" : "Glazing not stated") + '</span>' +
+          '<span class="pill ' + (l.floors ? "good" : "") + '">' + (l.floors ? "Wood/laminate" : "Floors not stated") + '</span></div>' +
+        '<div class="sources">' + srcs + '</div>' +
+        (l.agent ? '<div class="agent">' + esc(l.agent) + '</div>' : "") +
+        ((l.blurb || evid) ? '<details><summary>Why it scored this</summary><dl>' + evid +
+          (l.blurb ? "<dt>Listing</dt><dd>" + esc(l.blurb) + "</dd>" : "") + '</dl></details>' : "") +
+        '<div class="actions">' +
+          '<button type="button" class="btn' + (mark === "shortlist" ? " on" : "") + '" data-k="' + esc(l.key) + '" data-a="shortlist" aria-pressed="' + (mark === "shortlist") + '">' + (mark === "shortlist" ? "★ Shortlisted" : "☆ Shortlist") + '</button>' +
+          '<button type="button" class="btn" data-k="' + esc(l.key) + '" data-a="hidden">' + (mark === "hidden" ? "Unhide" : "Hide") + '</button>' +
+          (l.manual ? '<button type="button" class="btn" data-k="' + esc(l.key) + '" data-a="remove">Remove</button>' : "") +
+        '</div>' +
+      '</div></article>';
+  }
+
+  function render(){
+    if(!state.data) return;
+    var list = visible();
+    $("grid").innerHTML = list.length ? list.map(card).join("") :
+      '<div class="empty">' + (state.view === "short" ? "Nothing shortlisted yet. Tap ☆ Shortlist on a flat you like." :
+        state.view === "hidden" ? "Nothing hidden." : "No flats match these filters. Try widening the parking or price filter.") + '</div>';
+    var all = allListings();
+    var shortN = all.filter(function(l){ return state.marks[l.key] === "shortlist"; }).length;
+    var hidN = all.filter(function(l){ return state.marks[l.key] === "hidden"; }).length;
+    $("v-short").textContent = "Shortlist" + (shortN ? " (" + shortN + ")" : "");
+    $("v-hidden").textContent = "Hidden" + (hidN ? " (" + hidN + ")" : "");
+    $("count").textContent = list.length + " of " + all.length + " flats";
+  }
+
+  function renderAreas(){
+    var counts = {};
+    allListings().forEach(function(l){ var d = l.district || "Other"; counts[d] = (counts[d] || 0) + 1; });
+    var keys = Object.keys(counts).sort(function(a, b){ return a === "Other" ? 1 : b === "Other" ? -1 : counts[b] - counts[a]; });
+    $("areas").innerHTML = keys.map(function(k){
+      return '<button type="button" class="chip" data-area="' + esc(k) + '" aria-pressed="' + state.areas.has(k) + '">' + esc(k) + ' ' + counts[k] + '</button>';
+    }).join("");
+  }
+
+  function renderMeta(){
+    var d = state.data, c = d.criteria;
+    var when = new Date(d.updated).toLocaleString("en-GB", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+    $("sub").textContent = d.listings.length + " flats from " + Object.keys(d.sources).filter(function(k){ return d.sources[k].ok; }).length + " sites · updated " + when;
+    $("criteria").textContent = gbp(c.min_price) + "–" + gbp(c.max_price) + " pcm · " + c.min_beds + "–" + c.max_beds + " bed · Islington and edges";
+    $("status").innerHTML = Object.keys(d.sources).map(function(k){
+      var s = d.sources[k];
+      return "<span><b>" + esc(k) + "</b> " + (s.ok ? s.count + " listings" : "failed this run") + "</span>";
+    }).join("") + "<span><b>Zoopla</b> not searched</span><span><b>Facebook</b> add by hand</span>";
+  }
+
+  // ---- events ----
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("button");
+    if(!t) return;
+    if(t.dataset.view){
+      state.view = t.dataset.view;
+      document.querySelectorAll(".tabs button").forEach(function(b){ b.setAttribute("aria-pressed", b === t); });
+      render();
+    } else if(t.dataset.area){
+      var a = t.dataset.area;
+      state.areas.has(a) ? state.areas.delete(a) : state.areas.add(a);
+      t.setAttribute("aria-pressed", state.areas.has(a));
+      render();
+    } else if(t.dataset.a === "remove"){
+      var id = t.dataset.k.slice(2);
+      state.manual = state.manual.filter(function(m){ return m.id !== id; });
+      if(state.db) state.db.doc("manual/" + id).delete().catch(function(){});
+      else lsSet("ff-manual", state.manual);
+      renderAreas(); render();
+    } else if(t.dataset.a){
+      setMark(t.dataset.k, t.dataset.a);
+    }
+  });
+  ["f-parking","f-beds","f-sort","f-new"].forEach(function(id){ $(id).addEventListener("change", render); });
+  $("f-max").addEventListener("input", function(){ $("f-max-out").textContent = gbp(this.value); render(); });
+
+  $("add-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var m = {id: Date.now().toString(36), url:$("a-url").value.trim(), price:+$("a-price").value, beds:+$("a-beds").value,
+      address:$("a-addr").value.trim(), parking:$("a-parking").value, note:$("a-note").value.trim(), at:new Date().toISOString()};
+    state.manual.push(m);
+    renderAreas(); render();
+    this.reset();
+    var msg = $("add-msg");
+    if(state.db){
+      state.db.doc("manual/" + m.id).set(m).then(function(){ msg.textContent = "Added to the feed."; },
+        function(){ msg.textContent = "Couldn't save it. Check your connection and try again."; });
+    } else { lsSet("ff-manual", state.manual); msg.textContent = "Added. Saved on this device only."; }
+  });
+
+  // ---- boot ----
+  state.marks = lsGet("ff-marks", {});
+  state.manual = lsGet("ff-manual", []);
+  fetch("listings.json").then(function(r){ return r.json(); }).then(function(d){
+    state.data = d;
+    state.firstRun = Math.min.apply(null, d.listings.map(function(l){ return Date.parse(l.first_seen) || Infinity; }));
+    renderMeta(); renderAreas(); render();
+  }).catch(function(){ $("sub").textContent = "Couldn't load the listings file. Reload the page to try again."; });
+
+  if(window.claude && window.claude.use){
+    window.claude.use("db").then(function(db){
+      if(!db){ $("store-msg").textContent = "Shortlist and hand-added flats are saved on this device only."; return; }
+      state.db = db;
+      db.collection("marks").onSnapshot(function(snap){
+        var m = {};
+        snap.docs.forEach(function(d){ var v = d.data(); if(v && v.status) m[d.id] = v.status; });
+        state.marks = m; render();
+      }, function(){ $("store-msg").textContent = "Lost the connection to your saved shortlist. Reload to reconnect."; });
+      db.collection("manual").onSnapshot(function(snap){
+        state.manual = snap.docs.map(function(d){ return d.data(); });
+        renderAreas(); render();
+      }, function(){});
+    });
+  } else {
+    $("store-msg").textContent = "Shortlist and hand-added flats are saved on this device only.";
+  }
+})();
+</script>
