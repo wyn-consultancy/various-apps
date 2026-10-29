@@ -33,7 +33,8 @@ header.top{padding-block:28px 14px;display:flex;flex-wrap:wrap;gap:8px 20px;alig
 .bar .wrap{padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 .field{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 select,input[type=number],input[type=url],input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
-input[type=range]{accent-color:var(--accent);width:120px}
+.price-range input{width:84px;font-family:var(--mono)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .tabs{display:flex;gap:4px;background:var(--sunk);padding:3px;border-radius:8px}
 .tabs button{font:inherit;font-size:13px;font-weight:500;border:0;background:transparent;color:var(--muted);padding:5px 10px;border-radius:6px;cursor:pointer}
 .tabs button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
@@ -112,8 +113,14 @@ form.add .wide{grid-column:1/-1}
     </select></label>
   <label class="field" for="f-beds">Beds
     <select id="f-beds"><option value="0">Any</option><option value="1">1</option><option value="2">2</option></select></label>
-  <label class="field" for="f-max">Up to <span class="mono" id="f-max-out">£2,100</span>
-    <input type="range" id="f-max" min="1700" max="2100" step="25" value="2100"></label>
+  <div class="field price-range">
+    <label for="f-min">£</label><input type="number" id="f-min" list="price-steps" min="0" step="50" value="1700" inputmode="numeric" aria-label="Minimum rent per month">
+    <span>to</span>
+    <label for="f-max" class="sr">Maximum</label><input type="number" id="f-max" list="price-steps" min="0" step="50" value="2100" inputmode="numeric" aria-label="Maximum rent per month">
+    <span>pcm</span>
+  </div>
+  <datalist id="price-steps"></datalist>
+  <span class="msg" id="range-msg" hidden></span>
   <label class="field" for="f-sort">Sort
     <select id="f-sort"><option value="score">Best match</option><option value="price">Cheapest</option><option value="new">Newest</option></select></label>
   <label class="field" for="f-new"><input type="checkbox" id="f-new"> New only</label>
@@ -205,7 +212,8 @@ form.add .wide{grid-column:1/-1}
   }
 
   function visible(){
-    var p = $("f-parking").value, beds = +$("f-beds").value, max = +$("f-max").value, onlyNew = $("f-new").checked;
+    var p = $("f-parking").value, beds = +$("f-beds").value, onlyNew = $("f-new").checked;
+    var min = +$("f-min").value || 0, max = +$("f-max").value || Infinity;
     var list = allListings().filter(function(l){
       var mark = state.marks[l.key];
       if(state.view === "short" && mark !== "shortlist") return false;
@@ -215,7 +223,7 @@ form.add .wide{grid-column:1/-1}
       if(p === "some" && ["offstreet","mentioned","permit"].indexOf(l.parking) < 0) return false;
       if(p === "offstreet" && l.parking !== "offstreet") return false;
       if(beds && l.beds !== beds) return false;
-      if(l.price > max) return false;
+      if(l.price < min || l.price > max) return false;
       if(onlyNew && !isNew(l)) return false;
       if(state.areas.size && !state.areas.has(l.district || "Other")) return false;
       return true;
@@ -286,7 +294,11 @@ form.add .wide{grid-column:1/-1}
     var d = state.data, c = d.criteria;
     var when = new Date(d.updated).toLocaleString("en-GB", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
     $("sub").textContent = d.listings.length + " flats from " + Object.keys(d.sources).filter(function(k){ return d.sources[k].ok; }).length + " sites · updated " + when;
-    $("criteria").textContent = gbp(c.min_price) + "–" + gbp(c.max_price) + " pcm · " + c.min_beds + "–" + c.max_beds + " bed · Islington and edges";
+    $("criteria").textContent = "Covering " + gbp(c.min_price) + "–" + gbp(c.max_price) + " pcm · " + c.min_beds + "–" + c.max_beds + " bed · Islington and edges";
+    var opts = [];
+    for(var v = c.min_price; v <= c.max_price; v += 100) opts.push('<option value="' + v + '">');
+    $("price-steps").innerHTML = opts.join("");
+    priceChanged();
     $("status").innerHTML = Object.keys(d.sources).map(function(k){
       var s = d.sources[k];
       return "<span><b>" + esc(k) + "</b> " + (s.ok ? s.count + " listings" : "failed this run") + "</span>";
@@ -317,7 +329,21 @@ form.add .wide{grid-column:1/-1}
     }
   });
   ["f-parking","f-beds","f-sort","f-new"].forEach(function(id){ $(id).addEventListener("change", render); });
-  $("f-max").addEventListener("input", function(){ $("f-max-out").textContent = gbp(this.value); render(); });
+  // Price boxes: remembered per device; warn when they reach past what the feed fetched
+  function priceChanged(){
+    lsSet("ff-price", {min:$("f-min").value, max:$("f-max").value});
+    var c = state.data && state.data.criteria, msg = $("range-msg");
+    if(c){
+      var lo = +$("f-min").value, hi = +$("f-max").value;
+      var out = (lo && lo < c.min_price) || (hi && hi > c.max_price);
+      msg.hidden = !out;
+      msg.textContent = out ? "The feed only covers " + gbp(c.min_price) + "–" + gbp(c.max_price) + ". Ask Claude to widen it." : "";
+    }
+    render();
+  }
+  ["f-min","f-max"].forEach(function(id){ $(id).addEventListener("input", priceChanged); });
+  var savedPrice = lsGet("ff-price", null);
+  if(savedPrice){ $("f-min").value = savedPrice.min; $("f-max").value = savedPrice.max; }
 
   $("add-form").addEventListener("submit", function(e){
     e.preventDefault();

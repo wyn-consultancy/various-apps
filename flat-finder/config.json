@@ -1,6 +1,6 @@
 {
-  "min_price": 1700,
-  "max_price": 2100,
+  "min_price": 1500,
+  "max_price": 2500,
   "min_beds": 1,
   "max_beds": 2,
   "rightmove_location": "REGION^93965",
