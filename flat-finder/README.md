@@ -11,7 +11,7 @@ One feed of rental flats from several UK property sites, scored against a person
   than one site are merged into one entry. Output goes to `web/listings.json`, with small photos in
   `web/img/`.
 - `web/index.html` is the page. `scrape.py` also copies the feed into it, so it opens without a
-  second download (phones were failing on that); `listings.json` stays as a fallback. It lets you filter by parking, beds, price and
+  second download; `listings.json` stays as a fallback. It lets you filter by parking, beds, price and
   postcode area, and keeps a shortlist, hidden flats and hand-added listings (for Facebook
   Marketplace and the like) in the published page's database.
 
