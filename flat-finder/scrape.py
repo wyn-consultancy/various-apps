@@ -437,7 +437,19 @@ def main():
     thumbnails(listings)
     OUT.write_text(json.dumps({"updated": now, "criteria": CONFIG, "sources": status,
                                "listings": listings}, indent=1))
+    embed(OUT.read_text())
     print(f"wrote {len(listings)} listings to {OUT}")
+
+
+def embed(data):
+    """Copy the feed into web/index.html so the page needs no second request to show it."""
+    page = ROOT / "web" / "index.html"
+    html = page.read_text()
+    compact = json.dumps(json.loads(data), separators=(",", ":")).replace("</", "<\\/")
+    block = ('<!-- FEED-DATA:START -->\n<script type="application/json" id="feed-data">'
+             + compact + '</script>\n<!-- FEED-DATA:END -->')
+    html = re.sub(r"<!-- FEED-DATA:START -->.*?<!-- FEED-DATA:END -->", lambda m: block, html, flags=re.S)
+    page.write_text(html)
 
 
 if __name__ == "__main__":
