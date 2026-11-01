@@ -20,6 +20,13 @@ those finds go in through the page's "Add a listing by hand" form.
 
 ## Refresh
 
+A scheduled task ("Flat feed daily refresh") runs every morning at 07:37 London time in a fresh cloud
+session: it runs `scrape.py`, publishes the page plus whatever `publish_files.py` lists, and commits
+the result to this branch. The detail cache and photos are committed so each run only opens new
+listings.
+
+To refresh by hand:
+
 ```
 cd flat-finder
 python3 scrape.py
