@@ -430,6 +430,10 @@ def main():
             status[name] = {"ok": False, "error": str(e)[:200]}
             print(f"{name} failed: {e}", file=sys.stderr)
         save_cache(cache)
+    # Keep the cache to listings still on the market, so it stays small enough to commit
+    if all(v["ok"] for v in status.values()):
+        live = {f"{ {'Rightmove': 'rm', 'OnTheMarket': 'otm', 'OpenRent': 'or'}[l['source']]}-{l['id']}" for l in found}
+        save_cache({k: v for k, v in cache.items() if k in live})
     listings = merge([enrich(l) for l in found])
     for l in listings:
         l["first_seen"] = prev.get(l["key"]) or now
